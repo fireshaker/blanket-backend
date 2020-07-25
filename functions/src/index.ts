@@ -31,7 +31,7 @@ async function pingUrl(url: string) {
 }
 
 // TODO: Having a timeout of 540s might still not be enough since we are pinging serverless functions that might have long cold starts.
-export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 3 minutes').onRun(async () => {
+export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 3 hours').onRun(async () => {
   const monitoredFunctions = await admin.firestore().collection('monitoredFunctions').get();
 
   await Promise.all(monitoredFunctions.docs.map(async doc => {
