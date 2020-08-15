@@ -21,7 +21,7 @@ async function pingUrl(url: string) {
   });
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.post(url, { warmUp: true });
     return (response as any).duration as number;
   } catch (error) {
     // Most requests will probably fail since we don't provide any arguments.
@@ -31,7 +31,7 @@ async function pingUrl(url: string) {
 }
 
 // TODO: Having a timeout of 540s might still not be enough since we are pinging serverless functions that might have long cold starts.
-export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 3 hours').onRun(async () => {
+export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 15 minutes').onRun(async () => {
   const monitoredFunctions = await admin.firestore().collection('monitoredFunctions').get();
 
   await Promise.all(monitoredFunctions.docs.map(async doc => {
@@ -127,12 +127,12 @@ export const monitoringData = functions.runWith({ memory: '1GB' }).https.onReque
     const info = req.body as FunctionInfo;
     const result = await (Object.keys(info) as (keyof Partial<FunctionInfo>)[])
       .reduce<FirebaseFirestore.Query<FirebaseFirestore.DocumentData>>((query, key) => {
-          const value = info[key];
-          if (value !== undefined) {
-            return query.where(key, '==', value);
-          }
-          return query;
-        }, admin.firestore().collection('monitoredFunctions'))
+        const value = info[key];
+        if (value !== undefined) {
+          return query.where(key, '==', value);
+        }
+        return query;
+      }, admin.firestore().collection('monitoredFunctions'))
       .get();
 
     // .where('functionName', '==', info.functionName)
