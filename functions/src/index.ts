@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
+import blanket from '@foundryapp/blanket';
 
 admin.initializeApp();
 
@@ -31,7 +32,7 @@ async function pingUrl(url: string, concurrency: number) {
 }
 
 // TODO: Having a timeout of 540s might still not be enough since we are pinging serverless functions that might have long cold starts.
-export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 15 minutes').onRun(async () => {
+export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1GB' }).pubsub.schedule('every 10 minutes').onRun(async () => {
   const monitoredFunctions = await admin.firestore().collection('monitoredFunctions').get();
 
   await Promise.all(monitoredFunctions.docs.map(async doc => {
@@ -174,6 +175,14 @@ export const monitoringData = functions.runWith({ memory: '1GB' }).https.onReque
     });
     return;
   }
+});
+
+
+export const testingFunctions = functions.https.onRequest(async (req, res) => {
+  await blanket(req, res, () => {
+    functions.logger.log('Normal invocation');
+    res.status(200).send();
+  });
 });
 
 
