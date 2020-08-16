@@ -4,7 +4,7 @@ import axios from 'axios';
 
 admin.initializeApp();
 
-async function pingUrl(url: string) {
+async function pingUrl(url: string, concurrency: number) {
   axios.interceptors.request.use(config => {
     (config as any).metadata = { startTime: new Date().getTime() };
     return config;
@@ -21,7 +21,7 @@ async function pingUrl(url: string) {
   });
 
   try {
-    const response = await axios.post(url, { warmUp: true });
+    const response = await axios.post(url, { warmUp: { url, concurrency } });
     return (response as any).duration as number;
   } catch (error) {
     // Most requests will probably fail since we don't provide any arguments.
@@ -37,7 +37,7 @@ export const pingFunctions = functions.runWith({ timeoutSeconds: 540, memory: '1
   await Promise.all(monitoredFunctions.docs.map(async doc => {
     const data = doc.data();
     if (data.enabled && data.functionUrl) {
-      const duration = await pingUrl(data.functionUrl);
+      const duration = await pingUrl(data.functionUrl, data.concurrency || 1);
       await doc.ref.collection('pings').add({
         timestamp: new Date().getTime(),
         responseDuration: duration,
